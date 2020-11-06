@@ -1,0 +1,20 @@
+name: ackable
+description: Ack messages from different sources.
+version: 0.0.1
+
+environment:
+  sdk: '>= 2.9.0 < 3.0.0'
+
+dependencies:
+  logging: ^0.11.4
+  supercharged_dart: ^1.2.0
+  pedantic: ^1.9.2
+  dispose: any
+  meta: ^1.2.3
+  shelf_web_socket: ^0.2.3
+  web_socket_channel: ^1.1.0
+  quiver: ^2.1.4+1
+
+dependency_overrides:
+  dispose:
+    path: ../../imports/dispose
