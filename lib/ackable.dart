@@ -2,6 +2,7 @@
 export 'src/message.dart';
 
 export 'src/interface.dart';
+export 'src/delegate.dart';
 
 export 'src/sources/sources.dart'
 if (dart.library.html) 'src/sources/web.dart'
