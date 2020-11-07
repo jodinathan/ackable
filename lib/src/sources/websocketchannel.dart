@@ -8,7 +8,7 @@ class AckableWebSocketChannel extends Ackable
   final WebSocketChannel _channel;
   bool closeOnDispose = true;
 
-  Future<dynamic> close([int closeCode, String closeReason]) =>
+  Future<dynamic> close({int closeCode, String closeReason}) =>
       _channel.sink.close(closeCode, closeReason);
 
   @override

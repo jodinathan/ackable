@@ -4,6 +4,8 @@ export 'src/message.dart';
 export 'src/interface.dart';
 export 'src/delegate.dart';
 
+export 'broadcast/interface.dart';
+
 export 'src/sources/websocketchannel.dart';
 
 export 'src/sources/sources.dart'
