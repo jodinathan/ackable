@@ -10,31 +10,17 @@ abstract class AckableInit {
   FutureOr<void> ackOnInit();
 }
 
-abstract class AckableBroadcaster extends AckableRoom with Disposable {
-  final Map<String, AckableRoom> rooms = {};
-  Stream<Ackable> get onAckable;
-  StreamController<AckableClient> _ctrlClient;
-  Stream<AckableClient> get onClient => _ctrlClient.stream;
+abstract class AckableBroadcaster<T extends AckableRoom>
+    extends AckableRoom with Disposable {
+  final Map<String, T> rooms = {};
+  Stream<AckableClient> get onClient;
 
-  AckableClient makeClient(covariant Ackable ackable) =>
-      AckableClient(this, ackable);
+  T makeRoom(String name) => AckableRoom(this, name) as T;
 
-  AckableRoom makeRoom(String name) =>
-      AckableRoom(this, name);
-
-  AckableBroadcaster(String name) : super(null, name) {
-    _ctrlClient = controller();
-
-    each<Ackable>(onAckable, (ackable) {
-      var cli = makeClient(ackable);
-
-      add(cli);
-      _ctrlClient.add(cli);
-    });
-  }
+  AckableBroadcaster(String name) : super(null, name);
 
   @override
-  Future<AckableRoom> room(String name) async {
+  Future<T> room(String name) async {
     if (!rooms.containsKey(name)) {
       final room = makeRoom(name);
 
@@ -58,15 +44,16 @@ abstract class AckableBroadcaster extends AckableRoom with Disposable {
   }
 }
 
-class AckableRoom extends DelegatingList<AckableClient> {
+class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
   final AckableBroadcaster broadcaster;
-  final List<AckableClient> _clients = <AckableClient>[];
+  final Set<T> _clients = <T>{};
+  Set<T> get clients => _clients;
 
   String _name;
   String get name => _name;
 
   @override
-  List<AckableClient> get delegate => _clients;
+  Set<T> get delegate => _clients;
 
   Future<AckableRoom> room(String name) =>
       broadcaster.room('${this.name}.$name');
@@ -94,15 +81,12 @@ class AckableRoom extends DelegatingList<AckableClient> {
   AckableRoom(this.broadcaster, String name);
 }
 
-class AckableClient extends DelegatingAckable {
-  final AckableBroadcaster broadcaster;
+abstract class AckableClient implements Ackable {
+  AckableBroadcaster get broadcaster;
 
   Future<void> join(String room) => broadcaster.room(room).then(
           (r) => r.add(this));
 
   Future<void> leave(String room) => broadcaster.room(room).then(
           (r) => r.remove(this));
-
-  AckableClient(this.broadcaster, Ackable delegate)
-      : super(delegate);
 }

@@ -14,8 +14,9 @@ typedef ReplyFn = FutureOr Function(AckedMessage);
 class Reply {
   final ReplyFn loop;
   final Object data;
+  final Map<String, Object> headers;
 
-  Reply(this.loop, [this.data]);
+  Reply(this.loop, {this.data, this.headers});
 }
 
 Logger logger = Logger('Ackable');
@@ -26,6 +27,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
   final Map<ReplyFn, Completer> _talking = {};
   final Map<Iterable<String>, CommandFn> _many = {};
   final Map<String, MessageFn> _one = {};
+  final Map<Object, Iterable<FutureOr<bool> Function()>> middlewares = {};
   bool _initiated = false;
   int _counter = 0;
   bool allowUnknown = false;
@@ -98,16 +100,23 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     assert(!keys.any((cmd) => _one.keys.any((cmd2) => cmd2 == cmd)));
   }
 
-  void onCommand(String command, MessageFn exec) {
+  void onCommand(String command, MessageFn exec, {
+    Iterable<FutureOr<bool> Function()> middlewares
+  }) {
     _checkKey([command]);
 
     _one[command] = exec;
+
+    this.middlewares[exec] = middlewares;
   }
 
-  void onCommands(Iterable<String> commands, CommandFn exec) {
+  void onCommands(Iterable<String> commands, CommandFn exec, {
+    Iterable<FutureOr<bool> Function()> middlewares
+  }) {
     _checkKey(commands);
 
     _many[commands] = exec;
+    this.middlewares[exec] = middlewares;
   }
 
   void _checkReply(Object reply, Object id) {
@@ -117,9 +126,12 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
         'reply: ${reply != null}');
 
     if (id is int) {
-      var outHeaders = {'reply': id};
+      var outHeaders = <String, Object>{'reply': id};
 
       if (reply is Reply && reply.loop != null) {
+        if (reply.headers?.isNotEmpty == true) {
+          outHeaders.addAll(reply.headers);
+        }
         _speak('_', reply.data, outHeaders, reply.loop);
       } else {
         shout('_', reply, headers: outHeaders);
@@ -180,14 +192,39 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
         var many = _many.keys.firstWhere((it) => it.any((str) => str == cmd),
             orElse: () => null);
 
+        Future<bool> can(Object fn) async {
+          var ret = true;
+          var mids = middlewares[fn];
+
+          if (mids?.isNotEmpty == true) {
+            for (var mid in mids) {
+              if (!await mid()) {
+                ret = false;
+                headers['error'] = 'forbidden';
+                break;
+              }
+            }
+          }
+
+          return ret;
+        }
+
         if (many != null || one != null) {
           Object reply;
 
           if (many != null) {
-            reply = await _many[many](CommandMessage(cmd,
-                data, headers: headers));
+            var fn = _many[many];
+
+            if (await can(fn)) {
+              reply = await fn(CommandMessage(cmd,
+                  data, headers: headers));
+            }
           } else {
-            reply = await _one[one](Message(data, headers: headers));
+            var fn = _one[one];
+
+            if (await can(fn)) {
+              reply = await fn(Message(data, headers: headers));
+            }
           }
 
           _checkReply(reply, headers['id']);

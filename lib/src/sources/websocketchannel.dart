@@ -6,10 +6,11 @@ import '../interface.dart';
 class AckableWebSocketChannel extends Ackable
     with IncomingString, OutgoingString {
   final WebSocketChannel _channel;
+  WebSocketChannel get channel => _channel;
   bool closeOnDispose = true;
 
-  Future<dynamic> close({int closeCode, String closeReason}) =>
-      _channel.sink.close(closeCode, closeReason);
+  Future<dynamic> close({int code, String reason}) =>
+      _channel.sink.close(code, reason);
 
   @override
   Stream<Map<String, Object>> get onRawMessage => _channel.stream.map(
