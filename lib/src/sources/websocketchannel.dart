@@ -10,8 +10,8 @@ class AckableWebSocketChannel extends Ackable
 
   @override
   Stream<Map<String, Object>> get onRawMessage => _channel.stream.map(
-          (ev) {
-        var ret = parse(ev);
+          (dynamic ev) {
+        var ret = parse(ev as String);
 
         logger.info('AckableWebSocketChannel ${ret['cmd']}');
         return ret;

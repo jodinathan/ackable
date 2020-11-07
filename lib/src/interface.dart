@@ -141,7 +141,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
       var h = ev['headers'];
       var headers = h is Map ? h.cast<String, Object>() : <String, Object>{};
       var data = ev['data'];
-      var cmd = ev['cmd'];
+      var cmd = ev['cmd'] as String;
 
       logger.info('RawMessage $cmd');
 
@@ -154,7 +154,8 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
             _waiting.remove(id);
 
             var cmp = _talking[ack];
-            var reply = await ack(AckedMessage(id, data, headers: headers));
+            var reply = await ack(AckedMessage(id, data,
+                headers: headers)) as Object;
 
             if (cmp != null) {
               if (reply is Reply && reply.loop != null) {
@@ -183,7 +184,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           Object reply;
 
           if (many != null) {
-            reply = await _many[many](CommandMessage(cmd as String,
+            reply = await _many[many](CommandMessage(cmd,
                 data, headers: headers));
           } else {
             reply = await _one[one](Message(data, headers: headers));
@@ -234,11 +235,15 @@ mixin OutgoingString implements Outgoing {
 }
 
 Map<String, Object> /*?*/ _headers(Object headers) {
-  if (headers != null && headers is! Map<String, Object> /*?*/) {
+  if (headers != null) {
+    if (headers is Map<String, Object> /*?*/) {
+      return headers;
+    }
+
     throw 'Unknown headers type ${headers}';
   }
 
-  return headers;
+  return null;
 }
 
 Map<String, Object> _parse(String rawData) {
@@ -275,7 +280,7 @@ mixin IncomingCommandAndData implements Incoming {
 }
 
 mixin FnOutgoingString implements OutgoingString {
-  Function(String) get outgoing;
+  void Function(String) get outgoing;
 
   @override
   void shout(String subject, Object /*?*/ data,
@@ -293,7 +298,7 @@ class AckableInStringStreamOutFnString extends Ackable
     with IncomingString, OutgoingString, FnOutgoingString {
   final Stream<String> incoming;
   @override
-  final Function(String) outgoing;
+  final void Function(String) outgoing;
 
   @override
   Stream<Map<String, Object>> get onRawMessage =>
@@ -306,7 +311,7 @@ class AckableInMapStreamOutFnString extends Ackable
     with OutgoingString, FnOutgoingString
     implements Incoming {
   @override
-  final Function(String) outgoing;
+  final void Function(String) outgoing;
   @override
   final Stream<Map<String, Object>> onRawMessage;
 

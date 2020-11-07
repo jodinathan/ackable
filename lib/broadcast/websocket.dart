@@ -10,7 +10,8 @@ import '../src/sources/websocketchannel.dart';
 import 'interface.dart';
 
 class WebSocketAckableServer extends AckableBroadcaster {
-  final String host;
+  Object _host;
+  Object get host => _host;
   final int port;
   HttpServer _server;
   StreamController<Ackable> _ctrlAckable;
@@ -21,16 +22,21 @@ class WebSocketAckableServer extends AckableBroadcaster {
     return _ctrlAckable.stream;
   }
 
-  WebSocketAckableServer(Function(AckableClient) onClient,
-      {this.host = 'localhost', this.port = 8080}) :
-        super(onClient) {
+  WebSocketAckableServer(String name, {Object host,
+    this.port = 8080}) : super(name) {
+    _host = host ?? InternetAddress.anyIPv4;
+  }
+
+  Future<HttpServer> start() {
     var _handler = webSocketHandler((WebSocketChannel webSocket) {
       _ctrlAckable.add(AckableWebSocketChannel(webSocket));
     });
 
-    shelf_io.serve(_handler, host, port).then((server) {
+    return shelf_io.serve(_handler, _host, port).then((server) {
       logger.info('Serving at ws://${server.address.host}:${server.port}');
-    }).then((ev) => _server = ev);
+
+      return _server = server;
+    });
   }
 
   @override

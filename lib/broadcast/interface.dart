@@ -6,31 +6,51 @@ import 'package:quiver/collection.dart';
 
 import '../ackable.dart';
 
-abstract class AckableBroadcaster extends Disposable {
-  final Function(AckableClient) onClient;
+abstract class AckableInit {
+  FutureOr<void> ackOnInit();
+}
+
+abstract class AckableBroadcaster extends AckableRoom with Disposable {
   final Map<String, AckableRoom> rooms = {};
-  AckableRoom _defaultRoom;
-  AckableRoom get defaultRoom => _defaultRoom;
   Stream<Ackable> get onAckable;
+  StreamController<AckableClient> _ctrlClient;
+  Stream<AckableClient> get onClient => _ctrlClient.stream;
 
-  AckableBroadcaster(this.onClient) {
-    _defaultRoom = AckableRoom(this, 'default');
+  AckableClient makeClient(covariant Ackable ackable) =>
+      AckableClient(this, ackable);
 
-    disposable(_defaultRoom);
+  AckableRoom makeRoom(String name) =>
+      AckableRoom(this, name);
 
-    each(onAckable, (ackable) {
-      var cli = AckableClient(this, ackable);
+  AckableBroadcaster(String name) : super(null, name) {
+    _ctrlClient = controller();
 
-      defaultRoom.add(cli);
-      onClient(cli);
+    each<Ackable>(onAckable, (ackable) {
+      var cli = makeClient(ackable);
+
+      add(cli);
+      _ctrlClient.add(cli);
     });
   }
 
-  AckableRoom room(String name) => rooms[name] ??= AckableRoom(this, name);
+  @override
+  Future<AckableRoom> room(String name) async {
+    if (!rooms.containsKey(name)) {
+      final room = makeRoom(name);
+
+      if (room is AckableInit) {
+        await (room as AckableInit).ackOnInit();
+      }
+
+      rooms[name] = room;
+    }
+
+    return rooms[name];
+  }
 
   @override
   Future<void> dispose() async {
-    for (var cli in defaultRoom) {
+    for (var cli in this) {
       await cli.dispose();
     }
 
@@ -38,8 +58,7 @@ abstract class AckableBroadcaster extends Disposable {
   }
 }
 
-class AckableRoom extends DelegatingList<AckableClient>
-    with Disposable {
+class AckableRoom extends DelegatingList<AckableClient> {
   final AckableBroadcaster broadcaster;
   final List<AckableClient> _clients = <AckableClient>[];
 
@@ -49,7 +68,7 @@ class AckableRoom extends DelegatingList<AckableClient>
   @override
   List<AckableClient> get delegate => _clients;
 
-  AckableRoom room(String name) =>
+  Future<AckableRoom> room(String name) =>
       broadcaster.room('${this.name}.$name');
 
   void shout(String subject, Object /*?*/ data,
@@ -78,9 +97,11 @@ class AckableRoom extends DelegatingList<AckableClient>
 class AckableClient extends DelegatingAckable {
   final AckableBroadcaster broadcaster;
 
-  void join(String room) => broadcaster.room(room).add(this);
+  Future<void> join(String room) => broadcaster.room(room).then(
+          (r) => r.add(this));
 
-  void lead(String room) => broadcaster.room(room)?.remove(this);
+  Future<void> leave(String room) => broadcaster.room(room).then(
+          (r) => r.remove(this));
 
   AckableClient(this.broadcaster, Ackable delegate)
       : super(delegate);
