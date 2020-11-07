@@ -9,8 +9,8 @@ abstract class AckableBaseSocket extends Ackable
   bool get open;
   void sendString(String buf);
   void close();
-  Stream get onClose;
-  Stream get onOpen;
+  Stream<Object> get onClose;
+  Stream<Object> get onOpen;
   Stream<String> get onStringMessage;
 
   @override
@@ -48,7 +48,7 @@ abstract class AckableBaseSocket extends Ackable
       });
 
   AckableBaseSocket(){
-    each(onClose, (ev) {
+    each<Object>(onClose, (ev) {
       if (!ready.isCompleted) {
         ready.completeError(ev);
       }
@@ -59,7 +59,7 @@ abstract class AckableBaseSocket extends Ackable
     if (open) {
       _open();
     } else {
-      onOpen.first.then((ev) => _open());
+      onOpen.first.then((Object ev) => _open());
     }
   }
 }
