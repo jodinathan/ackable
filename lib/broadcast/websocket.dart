@@ -12,43 +12,64 @@ import 'interface.dart';
 class WebSocketAckableClient extends AckableWebSocketChannel
     with AckableClient {
   @override
-  final WebSocketAckableServer broadcaster;
+  final BaseWebSocketAckableServer broadcaster;
 
   WebSocketAckableClient(this.broadcaster,
       WebSocketChannel wsc) : super(wsc);
 }
 
+class WebSocketAckableServer
+    extends BaseWebSocketAckableServer<WebSocketAckableClient,
+        AckableRoom<WebSocketAckableClient>> {
+  @override
+  FutureOr<AckableRoom<WebSocketAckableClient>> makeRoom(String name)
+      => AckableRoom<WebSocketAckableClient>(this, name);
+
+  @override
+  FutureOr<WebSocketAckableClient> makeClient(WebSocketChannel wsc) =>
+      WebSocketAckableClient(this, wsc);
+
+  WebSocketAckableServer(String name, {Object host,
+    int port}) : super(name, host: host, port: port);
+}
+
+
 /// A broadcaster that generates a simple websocket server through
 /// [shelf\_web\_socket](https://pub.dev/packages/shelf_web_socket)
-class WebSocketAckableServer<T extends AckableRoom>
-    extends AckableBroadcaster<T> {
+abstract class BaseWebSocketAckableServer
+      <C extends WebSocketAckableClient, T extends AckableRoom<C>>
+    extends AckableBroadcaster {
   Object _host;
   /// The IP or the InternetAddress to bind the server.
   Object get host => _host;
   /// The port to bind the host.
   final int port;
   HttpServer _server;
-  StreamController<WebSocketAckableClient> _ctrlClient;
+  StreamController<C> _ctrlClient;
   @override
-  Stream<WebSocketAckableClient> get onClient => _ctrlClient.stream;
+  Stream<C> get onClient => _ctrlClient.stream;
 
   /// [name] is used to identify the server.
   /// [host] is the IP or the InternetAddress to bind the server.
   /// [port] is the port to bind the host.
   ///
   /// To start the server, please use [start].
-  WebSocketAckableServer(String name, {Object host,
+  BaseWebSocketAckableServer(String name, {Object host,
     this.port = 8080}) : super(name) {
     _host = host ?? InternetAddress.anyIPv4;
     _ctrlClient = controller();
   }
 
+  FutureOr<C> makeClient(WebSocketChannel wsc);
+
   /// Starts the websocket server.
   Future<HttpServer> start() {
-    var _handler = webSocketHandler((dynamic webSocket) {
+    var _handler = webSocketHandler((dynamic webSocket) async {
       assert(webSocket is WebSocketChannel);
-      _ctrlClient.add(WebSocketAckableClient(this,
-          webSocket as WebSocketChannel));
+      var cli = await makeClient(webSocket as WebSocketChannel);
+
+      add(cli);
+      _ctrlClient.add(cli);
     });
 
     return shelf_io.serve(_handler, _host, port).then((server) {

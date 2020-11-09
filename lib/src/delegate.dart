@@ -1,12 +1,13 @@
+import 'dart:async';
+
 import 'package:dispose/dispose.dart';
 
 import '../ackable.dart';
 import 'interface.dart';
 
-class DelegatingAckable extends Disposable
-    with Outgoing, Incoming
+abstract class DelegatingAckable
     implements Ackable {
-  final Ackable delegate;
+  Ackable get delegate;
 
   @override
   bool get allowUnknown => delegate.allowUnknown;
@@ -15,7 +16,10 @@ class DelegatingAckable extends Disposable
   set allowUnknown(bool n) => delegate.allowUnknown = n;
 
   @override
-  Stream<CommandMessage> get onMessage => delegate.onMessage;
+  Stream<Message> get onMessage => delegate.onMessage;
+
+  @override
+  Stream<CommandMessage> get onUnknownMessage => delegate.onUnknownMessage;
 
   @override
   Stream<Map<String, Object>> get onRawMessage => delegate.onRawMessage;
@@ -59,12 +63,16 @@ class DelegatingAckable extends Disposable
       timeout: timeout);
 
   @override
-  void onCommand(String command, MessageFn exec) =>
-      delegate.onCommand(command, exec);
+  void onCommand(String command, MessageFn exec,
+      {Iterable<FutureOr<bool> Function()> middlewares}) =>
+      delegate.onCommand(command, exec, middlewares: middlewares);
 
   @override
-  void onCommands(Iterable<String> commands, CommandFn exec) =>
-  delegate.onCommands(commands, exec);
+  void onCommands(Iterable<String> commands, CommandFn exec,
+  {Iterable<FutureOr<bool> Function()> middlewares}) =>
+  delegate.onCommands(commands, exec, middlewares: middlewares);
 
-  DelegatingAckable(this.delegate);
+  @override
+  Map<Object, Iterable<FutureOr<bool> Function()>> get middlewares =>
+      delegate.middlewares;
 }

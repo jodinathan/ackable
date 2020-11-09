@@ -10,29 +10,17 @@ abstract class AckableInit {
   FutureOr<void> ackOnInit();
 }
 
-abstract class AckableBroadcaster<T extends AckableRoom>
+Future<void> _initRoom(AckableRoom room) async {
+  if (room is AckableInit) {
+    await (room as AckableInit).ackOnInit();
+  }
+}
+
+abstract class AckableBroadcaster
     extends AckableRoom with Disposable {
-  final Map<String, T> rooms = {};
   Stream<AckableClient> get onClient;
 
-  T makeRoom(String name) => AckableRoom(this, name) as T;
-
   AckableBroadcaster(String name) : super(null, name);
-
-  @override
-  Future<T> room(String name) async {
-    if (!rooms.containsKey(name)) {
-      final room = makeRoom(name);
-
-      if (room is AckableInit) {
-        await (room as AckableInit).ackOnInit();
-      }
-
-      rooms[name] = room;
-    }
-
-    return rooms[name];
-  }
 
   @override
   Future<void> dispose() async {
@@ -47,16 +35,33 @@ abstract class AckableBroadcaster<T extends AckableRoom>
 class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
   final AckableBroadcaster broadcaster;
   final Set<T> _clients = <T>{};
+  final Map<String, AckableRoom> rooms = {};
   Set<T> get clients => _clients;
 
-  String _name;
+  final String _name;
   String get name => _name;
 
   @override
   Set<T> get delegate => _clients;
 
-  Future<AckableRoom> room(String name) =>
-      broadcaster.room('${this.name}.$name');
+  FutureOr<AckableRoom> makeRoom(String name) =>
+      AckableRoom(broadcaster, name);
+
+  Future<AckableRoom> room(String name) async {
+    if (!rooms.containsKey(name)) {
+      final room = await makeRoom(name);
+
+      if (room == null) {
+        return null;
+      }
+
+      await _initRoom(room);
+
+      rooms[name] = room;
+    }
+
+    return rooms[name];
+  }
 
   void shout(String subject, Object /*?*/ data,
       {Map<String, Object> /*?*/ headers}) {
@@ -78,7 +83,9 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
     return Future.wait(ret);
   }
 
-  AckableRoom(this.broadcaster, String name);
+  AckableRoom(this.broadcaster, this._name) {
+    print('AckableRoom $_name');
+  }
 }
 
 abstract class AckableClient implements Ackable {

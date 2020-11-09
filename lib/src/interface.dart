@@ -19,10 +19,15 @@ class Reply {
   Reply(this.loop, {this.data, this.headers});
 }
 
+abstract class ProcessMessage {
+  FutureOr<bool> ackProcessMessage(Message message);
+}
+
 Logger logger = Logger('Ackable');
 
 abstract class Ackable extends Disposable implements Incoming, Outgoing {
-  /*late*/ StreamController<CommandMessage> _ctrlMessage;
+  /*late*/ StreamController<Message> _ctrlMessage;
+  /*late*/ StreamController<CommandMessage> _ctrlUnknown;
   final Map<int, ReplyFn> _waiting = {};
   final Map<ReplyFn, Completer> _talking = {};
   final Map<Iterable<String>, CommandFn> _many = {};
@@ -31,10 +36,11 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
   bool _initiated = false;
   int _counter = 0;
   bool allowUnknown = false;
+  bool _procMsg;
+  ProcessMessage _asProcMsg;
 
-  /*late*/
-  Stream<CommandMessage> _onMessage;
-  Stream<CommandMessage> get onMessage => _onMessage;
+  Stream<Message> get onMessage => _ctrlMessage.stream;
+  Stream<CommandMessage> get onUnknownMessage => _ctrlUnknown.stream;
 
   void _speak(String subject, Object /*?*/ data,
       Map<String, Object> /*?*/ headers, ReplyFn /*?*/ onAck) {
@@ -148,6 +154,12 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     }
 
     _initiated = true;
+    _procMsg = this is ProcessMessage;
+
+    if (_procMsg) {
+      _asProcMsg = this as ProcessMessage;
+    }
+    logger.info('Ackable initiated. is ProccessMessage: $_procMsg');
 
     each<Map<String, Object>>(onRawMessage, (ev) async {
       var h = ev['headers'];
@@ -166,8 +178,16 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
             _waiting.remove(id);
 
             var cmp = _talking[ack];
-            var reply = await ack(AckedMessage(id, data,
-                headers: headers)) as Object;
+            var msg = AckedMessage(id, data,
+                headers: headers);
+
+            _ctrlMessage.add(msg);
+
+            if (_procMsg && !await _asProcMsg.ackProcessMessage(msg)) {
+              return;
+            }
+
+            var reply = await ack(msg) as Object;
 
             if (cmp != null) {
               if (reply is Reply && reply.loop != null) {
@@ -209,6 +229,10 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           return ret;
         }
 
+        var cmdMsg = CommandMessage(cmd, data, headers: headers);
+
+        _ctrlMessage.add(cmdMsg);
+
         if (many != null || one != null) {
           Object reply;
 
@@ -233,9 +257,11 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
             print(_one.keys);
             print(_many.keys);
             logger.info('Couldnt find a command, so broadcasting: $cmd');
-            _ctrlMessage.add(CommandMessage(cmd, data, headers: headers));
+            _ctrlUnknown.add(cmdMsg);
           } else {
-            throw 'Command not found: $cmd. Msg: $ev';
+            throw 'Command not found: $cmd. Msg: $ev.\n'
+                'Commands: ${[..._one.keys, ..._many.keys]}\n'
+                'Type: ${runtimeType}';
           }
         }
       }
@@ -244,11 +270,18 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
 
   Ackable() {
     _ctrlMessage = controller(broadcast: true);
+    _ctrlUnknown = controller(broadcast: true);
 
     _initiate();
-
-    _onMessage = _ctrlMessage.stream;
   }
+}
+
+extension AdvAckable on Ackable {
+  Future<Map<String, Object>> json(String subject,
+      Object /*?*/ data, {
+  Map<String, Object> /*?*/ headers,
+  Duration /*?*/ timeout}) async =>
+      (await acked(subject, data, headers: headers, timeout: timeout)).asMap();
 }
 
 Map<String, Object> _mount(
