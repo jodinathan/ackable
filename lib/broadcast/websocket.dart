@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -62,6 +63,8 @@ abstract class BaseWebSocketAckableServer
 
   FutureOr<C> makeClient(WebSocketChannel wsc);
 
+  FutureOr<bool> checkHeart() => true;
+
   /// Starts the websocket server.
   Future<HttpServer> start() {
     var _handler = webSocketHandler((dynamic webSocket) async {
@@ -72,7 +75,15 @@ abstract class BaseWebSocketAckableServer
       _ctrlClient.add(cli);
     });
 
-    return shelf_io.serve(_handler, _host, port).then((server) {
+    return shelf_io.serve((shelf.Request sock) async {
+      print('WebSoccket path ${sock.url.path}');
+      
+      if (sock.url.path == 'heartbeat') {
+        return shelf.Response(await checkHeart() ? 200 : 500);
+      }
+
+      return _handler(sock);
+    }, _host, port).then((server) {
       logger.info('Serving at ws://${server.address.host}:${server.port}');
 
       return _server = server;
