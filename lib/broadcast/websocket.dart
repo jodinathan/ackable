@@ -76,8 +76,6 @@ abstract class BaseWebSocketAckableServer
     });
 
     return shelf_io.serve((shelf.Request sock) async {
-      print('WebSoccket path ${sock.url.path}');
-      
       if (sock.url.path == 'heartbeat') {
         return shelf.Response(await checkHeart() ? 200 : 500);
       }
