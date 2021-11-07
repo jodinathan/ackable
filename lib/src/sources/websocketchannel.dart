@@ -9,21 +9,21 @@ class AckableWebSocketChannel extends Ackable
   WebSocketChannel get channel => _channel;
   bool closeOnDispose = true;
 
-  Future<dynamic> close({int code, String reason}) =>
+  Future<dynamic> close({int? code, String? reason}) =>
       _channel.sink.close(code, reason);
 
   @override
-  Stream<Map<String, Object>> get onRawMessage => _channel.stream.map(
+  Stream<Map<String, Object?>> get onRawMessage => _channel.stream.map(
           (dynamic ev) {
-            final ret = parse(ev as String);
+            final ret = parse(ev as String?);
 
             logger.info('AckableWebSocketChannel ${ret['cmd']}');
             return ret;
           });
 
   @override
-  void shout(String subject, Object/*?*/ data,
-      {Map<String, Object>/*?*/ headers}) {
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers}) {
     final outs = mount(subject, data, headers: headers);
 
     logger.info('Shout $subject: '

@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:ackable/json.dart';
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dispose/dispose.dart';
 import 'package:logging/logging.dart';
-import 'package:pedantic/pedantic.dart';
 
 import 'message.dart';
 
@@ -12,9 +12,9 @@ typedef MessageFn = FutureOr Function(Message);
 typedef ReplyFn = FutureOr Function(AckedMessage);
 
 class Reply {
-  final ReplyFn loop;
-  final Object data;
-  final Map<String, Object> headers;
+  final ReplyFn? loop;
+  final Object? data;
+  final Map<String, Object>? headers;
 
   Reply(this.loop, {this.data, this.headers});
 }
@@ -26,24 +26,24 @@ abstract class ProcessMessage {
 Logger logger = Logger('Ackable');
 
 abstract class Ackable extends Disposable implements Incoming, Outgoing {
-  /*late*/ StreamController<Message> _ctrlMessage;
-  /*late*/ StreamController<CommandMessage> _ctrlUnknown;
+  late StreamController<Message> _ctrlMessage;
+  late StreamController<CommandMessage> _ctrlUnknown;
   final Map<int, ReplyFn> _waiting = {};
   final Map<ReplyFn, Completer> _talking = {};
   final Map<Iterable<String>, CommandFn> _many = {};
   final Map<String, MessageFn> _one = {};
-  final Map<Object, Iterable<FutureOr<bool> Function()>> middlewares = {};
+  final Map<Object, Iterable<FutureOr<bool> Function()>?> middlewares = {};
   bool _initiated = false;
   int _counter = 0;
   bool allowUnknown = false;
-  bool _procMsg;
-  ProcessMessage _asProcMsg;
+  late bool _procMsg;
+  late ProcessMessage _asProcMsg;
 
   Stream<Message> get onMessage => _ctrlMessage.stream;
   Stream<CommandMessage> get onUnknownMessage => _ctrlUnknown.stream;
 
-  void _speak(String subject, Object /*?*/ data,
-      Map<String, Object> /*?*/ headers, ReplyFn /*?*/ onAck) {
+  void _speak(String subject, Object? data,
+      Map<String, Object>? headers, ReplyFn? onAck) {
     if (onAck != null) {
       headers ??= {};
 
@@ -58,10 +58,10 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
 
   Future<void> talk(
     String subject,
-    Object /*?*/ data,
-    ReplyFn /*?*/ onAck, {
-    Map<String, Object> /*?*/ headers,
-    Duration /*?*/ timeout,
+    Object? data,
+    ReplyFn? onAck, {
+    Map<String, Object>? headers,
+    Duration? timeout,
   }) async {
     final cmp = Completer<void>();
 
@@ -77,21 +77,21 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     return timeout == null ? ret : ret.timeout(timeout);
   }
 
-  Future<Object> once(
+  Future<Object?> once(
     String subject,
-    Object /*?*/ data, {
-    Map<String, Object> /*?*/ headers,
-    Duration /*?*/ timeout,
+    Object? data, {
+    Map<String, Object>? headers,
+    Duration? timeout,
   }) async =>
-      (await acked(subject, data, headers: headers, timeout: timeout)).data;
+      (await acked(subject, data, headers: headers, timeout: timeout))!.data;
 
-  Future<AckedMessage> acked(
+  Future<AckedMessage?> acked(
     String subject,
-    Object /*?*/ data, {
-    Map<String, Object> /*?*/ headers,
-    Duration /*?*/ timeout,
+    Object? data, {
+    Map<String, Object>? headers,
+    Duration? timeout,
   }) async {
-    AckedMessage ret;
+    AckedMessage? ret;
 
     await talk(subject, data, (ev) {
       ret = ev;
@@ -107,7 +107,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
   }
 
   void onCommand(String command, MessageFn exec, {
-    Iterable<FutureOr<bool> Function()> middlewares
+    Iterable<FutureOr<bool> Function()>? middlewares
   }) {
     _checkKey([command]);
 
@@ -117,7 +117,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
   }
 
   void onCommands(Iterable<String> commands, CommandFn exec, {
-    Iterable<FutureOr<bool> Function()> middlewares
+    Iterable<FutureOr<bool> Function()>? middlewares
   }) {
     _checkKey(commands);
 
@@ -125,18 +125,18 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     this.middlewares[exec] = middlewares;
   }
 
-  void _checkReply(Object reply, Object id) {
+  void _checkReply(Object? reply, Object? id) {
     assert(
         id is int || reply == null,
-        'We have reply or id is not int! id: ${id} ${id?.runtimeType}, '
-        'reply: ${reply != null}');
+        'We have reply or id is not int! id: $id ${id?.runtimeType}, '
+        'reply: $reply');
 
     if (id is int) {
       final outHeaders = <String, Object>{'reply': id};
 
       if (reply is Reply && reply.loop != null) {
         if (reply.headers?.isNotEmpty == true) {
-          outHeaders.addAll(reply.headers);
+          outHeaders.addAll(reply.headers!);
         }
         _speak('_', reply.data, outHeaders, reply.loop);
       } else {
@@ -161,18 +161,18 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
 
     logger.info('Ackable initiated. is ProccessMessage: $_procMsg');
 
-    each<Map<String, Object>>(onRawMessage, (ev) async {
+    each<Map<String, Object?>>(onRawMessage, (ev) async {
       final h = ev['headers'];
       final headers = h is Map ? h.cast<String, Object>() : <String, Object>{};
       final data = ev['data'];
-      final cmd = ev['cmd'] as String;
+      final cmd = ev['cmd'] as String?;
 
       logger.info('RawMessage $cmd');
 
       if (cmd == '_') {
         if (headers['reply'] is int) {
-          final id = headers['reply'] as int;
-          final ack = _waiting[id];
+          final id = headers['reply'] as int?;
+          final ack = _waiting[id!];
 
           if (ack != null) {
             _waiting.remove(id);
@@ -192,7 +192,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
             if (cmp != null) {
               if (reply is Reply && reply.loop != null) {
                 _talking.remove(ack);
-                _talking[reply.loop] = cmp;
+                _talking[reply.loop!] = cmp;
               } else {
                 assert(!cmp.isCompleted);
 
@@ -202,22 +202,21 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
 
             _checkReply(reply, id);
           } else {
-            logger.info('Ack fn for id ${id} not found');
+            logger.info('Ack fn for id $id not found');
           }
         } else {
           logger.warning('Unexpected reply command without id');
         }
       } else {
-        final one = _one.keys.firstWhere((it) => it == cmd, orElse: () => null);
-        final many = _many.keys.firstWhere((it) => it.any((str) => str == cmd),
-            orElse: () => null);
+        final one = _one.keys.firstWhereOrNull((it) => it == cmd);
+        final many = _many.keys.firstWhereOrNull((it) => it.any((str) => str == cmd));
 
-        Future<bool> can(Object fn) async {
+        Future<bool> can(Object? fn) async {
           var ret = true;
-          final mids = middlewares[fn];
+          final mids = middlewares[fn!];
 
           if (mids?.isNotEmpty == true) {
-            for (final mid in mids) {
+            for (final mid in mids!) {
               if (!await mid()) {
                 ret = false;
                 headers['error'] = 'forbidden';
@@ -234,20 +233,20 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
         _ctrlMessage.add(cmdMsg);
 
         if (many != null || one != null) {
-          Object reply;
+          Object? reply;
 
           if (many != null) {
             final fn = _many[many];
 
             if (await can(fn)) {
-              reply = await fn(CommandMessage(cmd,
+              reply = await fn!(CommandMessage(cmd,
                   data, headers: headers));
             }
           } else {
-            final fn = _one[one];
+            final fn = _one[one!];
 
             if (await can(fn)) {
-              reply = await fn(Message(data, headers: headers));
+              reply = await fn!(Message(data, headers: headers));
             }
           }
 
@@ -261,7 +260,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           } else {
             throw 'Command not found: $cmd. Msg: $ev.\n'
                 'Commands: ${[..._one.keys, ..._many.keys]}\n'
-                'Type: ${runtimeType}';
+                'Type: $runtimeType';
           }
         }
       }
@@ -277,46 +276,46 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
 }
 
 extension AdvAckable on Ackable {
-  Future<Map<String, Object>> json(String subject,
-      Object /*?*/ data, {
-  Map<String, Object> /*?*/ headers,
-  Duration /*?*/ timeout}) async =>
-      (await acked(subject, data, headers: headers, timeout: timeout)).asMap();
+  Future<Map<String, Object>?> json(String subject,
+      Object? data, {
+  Map<String, Object>? headers,
+  Duration? timeout}) async =>
+      (await acked(subject, data, headers: headers, timeout: timeout))!.asMap();
 }
 
-Map<String, Object> _mount(
-        String command, Object data, Map<String, Object> /*?*/ headers) =>
+Map<String, Object?> _mount(
+        String command, Object? data, Map<String, Object>? headers) =>
     {'cmd': command, 'data': data, 'headers': headers};
 
 abstract class Outgoing {
-  void shout(String subject, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers});
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers});
 
-  Object mount(String command, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers});
+  Object? mount(String command, Object? data,
+      {Map<String, Object>? headers});
 }
 
 mixin OutgoingString implements Outgoing {
   @override
-  String mount(String command, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers}) {
+  String? mount(String command, Object? data,
+      {Map<String, Object>? headers}) {
     return jsonEncode(_mount(command, data, headers));
   }
 }
 
-Map<String, Object> /*?*/ _headers(Object headers) {
+Map<String, Object>? _headers(Object? headers) {
   if (headers != null) {
-    if (headers is Map<String, Object> /*?*/) {
-      return headers;
+    if (headers is Map<String, Object>?) {
+      return headers as Map<String, Object>?;
     }
 
-    throw 'Unknown headers type ${headers}';
+    throw 'Unknown headers type $headers';
   }
 
   return null;
 }
 
-Map<String, Object> _parse(String rawData) {
+Map<String, Object> _parse(String? rawData) {
   final parsed = jsonDecode(rawData);
 
   return parsed is Map
@@ -325,11 +324,11 @@ Map<String, Object> _parse(String rawData) {
 }
 
 abstract class Incoming {
-  Stream<Map<String, Object>> get onRawMessage;
+  Stream<Map<String, Object?>> get onRawMessage;
 }
 
 mixin IncomingString implements Incoming {
-  Map<String, Object> parse(String rawData) {
+  Map<String, Object?> parse(String? rawData) {
     final parsed = _parse(rawData);
     final command = parsed['cmd'];
 
@@ -342,7 +341,7 @@ mixin IncomingString implements Incoming {
 }
 
 mixin IncomingCommandAndData implements Incoming {
-  Map<String, Object> parse(String command, String rawData) {
+  Map<String, Object?> parse(String command, String rawData) {
     final parsed = _parse(rawData);
 
     return _mount(command, parsed['data'], _headers(parsed['headers']));
@@ -350,11 +349,11 @@ mixin IncomingCommandAndData implements Incoming {
 }
 
 mixin FnOutgoingString implements OutgoingString {
-  void Function(String) get outgoing;
+  void Function(String?) get outgoing;
 
   @override
-  void shout(String subject, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers}) {
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers}) {
     final outs = mount(subject, data, headers: headers);
 
     logger.info('AckableStringStream Shout $subject: '
@@ -368,10 +367,10 @@ class AckableInStringStreamOutFnString extends Ackable
     with IncomingString, OutgoingString, FnOutgoingString {
   final Stream<String> incoming;
   @override
-  final void Function(String) outgoing;
+  final void Function(String?) outgoing;
 
   @override
-  Stream<Map<String, Object>> get onRawMessage =>
+  Stream<Map<String, Object?>> get onRawMessage =>
       incoming.map((ev) => parse(ev));
 
   AckableInStringStreamOutFnString(this.incoming, this.outgoing);
@@ -381,7 +380,7 @@ class AckableInMapStreamOutFnString extends Ackable
     with OutgoingString, FnOutgoingString
     implements Incoming {
   @override
-  final void Function(String) outgoing;
+  final void Function(String?) outgoing;
   @override
   final Stream<Map<String, Object>> onRawMessage;
 

@@ -3,16 +3,16 @@
 import 'package:ackable/json.dart';
 
 class Message {
-  final Object/*?*/ data;
-  final Map<String, Object>/*?*/ headers;
+  final Object? data;
+  final Map<String, Object>? headers;
 
-  Map<String, Object> asMap() {
+  Map<String, Object>? asMap() {
     final d = data;
 
     if (d == null) {
       return null;
     } else if (d is String) {
-      return jsonDecode(d) as Map<String, Object>;
+      return jsonDecode(d) as Map<String, Object>?;
     } else if (d is Map) {
       return d.cast<String, Object>();
     }
@@ -31,18 +31,18 @@ class Message {
 }
 
 class CommandMessage extends Message {
-  final String command;
+  final String? command;
 
-  CommandMessage(this.command, Object data,
-      {Map<String, Object> headers}) :
+  CommandMessage(this.command, Object? data,
+      {Map<String, Object>? headers}) :
         super(data, headers: headers);
 }
 
 class AckedMessage extends Message {
-  final int id;
+  final int? id;
 
-  AckedMessage(this.id, Object data,
-      {Map<String, Object> headers}) :
+  AckedMessage(this.id, Object? data,
+      {Map<String, Object>? headers}) :
         super(data, headers: headers);
 }
 

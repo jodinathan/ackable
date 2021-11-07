@@ -8,20 +8,20 @@ class AckableWebSocket extends AckableBaseSocket
   final html.WebSocket webSocket;
 
   @override
-  void sendString(String buf) => webSocket.sendString(buf);
+  void sendString(String? buf) => webSocket.sendString(buf!);
 
   @override
   void close() => webSocket.close();
 
   @override
-  Stream get onClose => webSocket.onClose;
+  Stream<Object> get onClose => webSocket.onClose;
 
   @override
-  Stream get onOpen => webSocket.onOpen;
+  Stream<Object> get onOpen => webSocket.onOpen;
 
   @override
-  Stream<String> get onStringMessage => webSocket.onMessage.map(
-          (ev) => ev.data as String);
+  Stream<String?> get onStringMessage => webSocket.onMessage.map(
+          (ev) => ev.data as String?);
 
   @override
   bool get open => webSocket.readyState == html.WebSocket.OPEN;

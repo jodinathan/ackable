@@ -7,15 +7,15 @@ abstract class AckableBaseSocket extends Ackable
   Completer<bool> ready = Completer<bool>();
 
   bool get open;
-  void sendString(String buf);
+  void sendString(String? buf);
   void close();
   Stream<Object> get onClose;
   Stream<Object> get onOpen;
-  Stream<String> get onStringMessage;
+  Stream<String?> get onStringMessage;
 
   @override
-  void shout(String subject, Object/*?*/ data,
-      {Map<String, Object>/*?*/ headers}) {
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers}) {
     final outs = mount(subject, data, headers: headers);
 
     logger.info('Shout $subject: '
@@ -39,7 +39,7 @@ abstract class AckableBaseSocket extends Ackable
   }
 
   @override
-  Stream<Map<String, Object>> get onRawMessage => onStringMessage.map(
+  Stream<Map<String, Object?>> get onRawMessage => onStringMessage.map(
           (ev) {
             final ret = parse(ev);
 

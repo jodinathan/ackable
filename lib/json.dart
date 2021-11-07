@@ -1,6 +1,6 @@
 import 'dart:convert' as conv;
 
-String/*?*/ Function(Object/*?*/) jsonEncode = (Object/*?*/ obj) {
+String? Function(Object?) jsonEncode = (Object? obj) {
   return conv.json.encode(obj, toEncodable: (dynamic obj) {
     if (obj == null) return null;
     if (obj is DateTime) return obj.toString();
@@ -10,6 +10,6 @@ String/*?*/ Function(Object/*?*/) jsonEncode = (Object/*?*/ obj) {
   });
 };
 
-Object Function(String) jsonDecode = (String buf) {
-  return conv.json.decode(buf);
+Object? Function(String?) jsonDecode = (String? buf) {
+  return conv.json.decode(buf!);
 };

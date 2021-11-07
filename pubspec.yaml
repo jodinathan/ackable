@@ -3,21 +3,22 @@ description: Ack messages from different sources.
 version: 0.0.1
 
 environment:
-  sdk: '>= 2.9.0 < 3.0.0'
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
-  logging: ^0.11.4
-  supercharged_dart: ^1.2.0
-  pedantic: ^1.9.2
-  dispose: ^0.0.5
-  meta: ^1.2.3
-  shelf_web_socket: ^0.2.3
-  web_socket_channel: ^1.1.0
-  quiver: ^2.1.4+1
+  logging: ^1.0.2
+  supercharged_dart: ^2.1.1
+  lints: ^1.0.1
+  dispose: ^0.0.6
+  meta: ^1.7.0
+  shelf_web_socket: ^1.0.1
+  web_socket_channel: ^2.1.0
+  quiver: ^3.0.1+1
+  collection: ^1.15.0-nullsafety.4
 
 dev_dependencies:
-  effective_dart: ^1.3.0
+  effective_dart: ^1.3.2
 
 dependency_overrides:
   dispose:
-    path: ../../imports/dispose
+    path: ../dispose

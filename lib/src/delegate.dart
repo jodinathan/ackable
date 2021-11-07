@@ -20,57 +20,57 @@ abstract class DelegatingAckable
   Stream<CommandMessage> get onUnknownMessage => delegate.onUnknownMessage;
 
   @override
-  Stream<Map<String, Object>> get onRawMessage => delegate.onRawMessage;
+  Stream<Map<String, Object?>> get onRawMessage => delegate.onRawMessage;
 
   @override
-  void shout(String subject, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers}) =>
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers}) =>
       delegate.shout(subject, data, headers: headers);
 
   @override
-  Object mount(String command, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers}) =>
+  Object? mount(String command, Object? data,
+      {Map<String, Object>? headers}) =>
       delegate.mount(command, data, headers: headers);
 
   @override
   Future<void> talk(String subject,
-      Object /*?*/ data,
-      ReplyFn /*?*/ onAck, {
-        Map<String, Object> /*?*/ headers,
-        Duration /*?*/ timeout,
+      Object? data,
+      ReplyFn? onAck, {
+        Map<String, Object>? headers,
+        Duration? timeout,
       }) =>
       delegate.talk(subject, data, onAck, headers: headers,
           timeout: timeout);
 
   @override
-  Future<Object> once(
+  Future<Object?> once(
       String subject,
-      Object /*?*/ data, {
-        Map<String, Object> /*?*/ headers,
-        Duration /*?*/ timeout,
+      Object? data, {
+        Map<String, Object>? headers,
+        Duration? timeout,
       }) => delegate.once(subject, data, headers: headers,
       timeout: timeout);
 
   @override
-  Future<AckedMessage> acked(
+  Future<AckedMessage?> acked(
       String subject,
-      Object /*?*/ data, {
-        Map<String, Object> /*?*/ headers,
-        Duration /*?*/ timeout,
+      Object? data, {
+        Map<String, Object>? headers,
+        Duration? timeout,
       }) => delegate.acked(subject, data, headers: headers,
       timeout: timeout);
 
   @override
   void onCommand(String command, MessageFn exec,
-      {Iterable<FutureOr<bool> Function()> middlewares}) =>
+      {Iterable<FutureOr<bool> Function()>? middlewares}) =>
       delegate.onCommand(command, exec, middlewares: middlewares);
 
   @override
   void onCommands(Iterable<String> commands, CommandFn exec,
-  {Iterable<FutureOr<bool> Function()> middlewares}) =>
+  {Iterable<FutureOr<bool> Function()>? middlewares}) =>
   delegate.onCommands(commands, exec, middlewares: middlewares);
 
   @override
-  Map<Object, Iterable<FutureOr<bool> Function()>> get middlewares =>
+  Map<Object, Iterable<FutureOr<bool> Function()>?> get middlewares =>
       delegate.middlewares;
 }

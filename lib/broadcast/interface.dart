@@ -32,7 +32,7 @@ abstract class AckableBroadcaster
 }
 
 class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
-  final AckableBroadcaster broadcaster;
+  final AckableBroadcaster? broadcaster;
   final Set<T> _clients = <T>{};
   final Map<String, AckableRoom> rooms = {};
   Set<T> get clients => _clients;
@@ -46,7 +46,7 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
   FutureOr<AckableRoom> makeRoom(String name) =>
       AckableRoom(broadcaster, name);
 
-  Future<AckableRoom> room(String name) async {
+  Future<AckableRoom?> room(String name) async {
     if (!rooms.containsKey(name)) {
       final room = await makeRoom(name);
 
@@ -62,17 +62,17 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
     return rooms[name];
   }
 
-  void shout(String subject, Object /*?*/ data,
-      {Map<String, Object> /*?*/ headers}) {
+  void shout(String subject, Object? data,
+      {Map<String, Object>? headers}) {
     for (final cli in _clients) {
       cli.shout(subject, data, headers: headers);
     }
   }
 
   Future<void> talk(String subject,
-      Object /*?*/ data, {
-        FutureOr Function(AckableClient, AckedMessage) onAck,
-        Map<String, Object> /*?*/ headers }) {
+      Object? data, {
+        FutureOr Function(AckableClient, AckedMessage)? onAck,
+        Map<String, Object>? headers }) {
     final ret = _clients.map((cli) => cli.talk(subject, data, (ack) {
       if (onAck != null) {
         return onAck(cli, ack);
@@ -91,8 +91,8 @@ abstract class AckableClient implements Ackable {
   AckableBroadcaster get broadcaster;
 
   Future<void> join(String room) => broadcaster.room(room).then(
-          (r) => r.add(this));
+          (r) => r!.add(this));
 
   Future<void> leave(String room) => broadcaster.room(room).then(
-          (r) => r.remove(this));
+          (r) => r!.remove(this));
 }
