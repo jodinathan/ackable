@@ -15,16 +15,16 @@ class AckableWebSocketChannel extends Ackable
   @override
   Stream<Map<String, Object>> get onRawMessage => _channel.stream.map(
           (dynamic ev) {
-        var ret = parse(ev as String);
+            final ret = parse(ev as String);
 
-        logger.info('AckableWebSocketChannel ${ret['cmd']}');
-        return ret;
-      });
+            logger.info('AckableWebSocketChannel ${ret['cmd']}');
+            return ret;
+          });
 
   @override
   void shout(String subject, Object/*?*/ data,
       {Map<String, Object>/*?*/ headers}) {
-    var outs = mount(subject, data, headers: headers);
+    final outs = mount(subject, data, headers: headers);
 
     logger.info('Shout $subject: '
         '\nheaders: $headers\nData: $data');

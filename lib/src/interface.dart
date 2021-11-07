@@ -47,7 +47,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     if (onAck != null) {
       headers ??= {};
 
-      var id = ++_counter;
+      final id = ++_counter;
       headers['id'] = id;
 
       _waiting[id] = onAck;
@@ -63,14 +63,14 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     Map<String, Object> /*?*/ headers,
     Duration /*?*/ timeout,
   }) async {
-    var cmp = Completer<void>();
+    final cmp = Completer<void>();
 
     onAck ??= (msg) => null;
     _talking[onAck] = cmp;
 
     _speak(subject, data, headers, onAck);
 
-    var ret = cmp.future;
+    final ret = cmp.future;
 
     unawaited(ret.then((ev) => _talking.remove(onAck)));
 
@@ -132,7 +132,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
         'reply: ${reply != null}');
 
     if (id is int) {
-      var outHeaders = <String, Object>{'reply': id};
+      final outHeaders = <String, Object>{'reply': id};
 
       if (reply is Reply && reply.loop != null) {
         if (reply.headers?.isNotEmpty == true) {
@@ -154,31 +154,31 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
     }
 
     _initiated = true;
-    _procMsg = this is ProcessMessage;
 
-    if (_procMsg) {
+    if (_procMsg = this is ProcessMessage) {
       _asProcMsg = this as ProcessMessage;
     }
+
     logger.info('Ackable initiated. is ProccessMessage: $_procMsg');
 
     each<Map<String, Object>>(onRawMessage, (ev) async {
-      var h = ev['headers'];
-      var headers = h is Map ? h.cast<String, Object>() : <String, Object>{};
-      var data = ev['data'];
-      var cmd = ev['cmd'] as String;
+      final h = ev['headers'];
+      final headers = h is Map ? h.cast<String, Object>() : <String, Object>{};
+      final data = ev['data'];
+      final cmd = ev['cmd'] as String;
 
       logger.info('RawMessage $cmd');
 
       if (cmd == '_') {
         if (headers['reply'] is int) {
-          var id = headers['reply'] as int;
-          var ack = _waiting[id];
+          final id = headers['reply'] as int;
+          final ack = _waiting[id];
 
           if (ack != null) {
             _waiting.remove(id);
 
-            var cmp = _talking[ack];
-            var msg = AckedMessage(id, data,
+            final cmp = _talking[ack];
+            final msg = AckedMessage(id, data,
                 headers: headers);
 
             _ctrlMessage.add(msg);
@@ -187,7 +187,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
               return;
             }
 
-            var reply = await ack(msg) as Object;
+            final reply = await ack(msg) as Object;
 
             if (cmp != null) {
               if (reply is Reply && reply.loop != null) {
@@ -208,16 +208,16 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           logger.warning('Unexpected reply command without id');
         }
       } else {
-        var one = _one.keys.firstWhere((it) => it == cmd, orElse: () => null);
-        var many = _many.keys.firstWhere((it) => it.any((str) => str == cmd),
+        final one = _one.keys.firstWhere((it) => it == cmd, orElse: () => null);
+        final many = _many.keys.firstWhere((it) => it.any((str) => str == cmd),
             orElse: () => null);
 
         Future<bool> can(Object fn) async {
           var ret = true;
-          var mids = middlewares[fn];
+          final mids = middlewares[fn];
 
           if (mids?.isNotEmpty == true) {
-            for (var mid in mids) {
+            for (final mid in mids) {
               if (!await mid()) {
                 ret = false;
                 headers['error'] = 'forbidden';
@@ -229,7 +229,7 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           return ret;
         }
 
-        var cmdMsg = CommandMessage(cmd, data, headers: headers);
+        final cmdMsg = CommandMessage(cmd, data, headers: headers);
 
         _ctrlMessage.add(cmdMsg);
 
@@ -237,14 +237,14 @@ abstract class Ackable extends Disposable implements Incoming, Outgoing {
           Object reply;
 
           if (many != null) {
-            var fn = _many[many];
+            final fn = _many[many];
 
             if (await can(fn)) {
               reply = await fn(CommandMessage(cmd,
                   data, headers: headers));
             }
           } else {
-            var fn = _one[one];
+            final fn = _one[one];
 
             if (await can(fn)) {
               reply = await fn(Message(data, headers: headers));
@@ -317,7 +317,7 @@ Map<String, Object> /*?*/ _headers(Object headers) {
 }
 
 Map<String, Object> _parse(String rawData) {
-  var parsed = jsonDecode(rawData);
+  final parsed = jsonDecode(rawData);
 
   return parsed is Map
       ? parsed.cast<String, Object>()
@@ -330,8 +330,8 @@ abstract class Incoming {
 
 mixin IncomingString implements Incoming {
   Map<String, Object> parse(String rawData) {
-    var parsed = _parse(rawData);
-    var command = parsed['cmd'];
+    final parsed = _parse(rawData);
+    final command = parsed['cmd'];
 
     if (command is String && command.isNotEmpty) {
       return _mount(command, parsed['data'], _headers(parsed['headers']));
@@ -343,7 +343,7 @@ mixin IncomingString implements Incoming {
 
 mixin IncomingCommandAndData implements Incoming {
   Map<String, Object> parse(String command, String rawData) {
-    var parsed = _parse(rawData);
+    final parsed = _parse(rawData);
 
     return _mount(command, parsed['data'], _headers(parsed['headers']));
   }
@@ -355,7 +355,7 @@ mixin FnOutgoingString implements OutgoingString {
   @override
   void shout(String subject, Object /*?*/ data,
       {Map<String, Object> /*?*/ headers}) {
-    var outs = mount(subject, data, headers: headers);
+    final outs = mount(subject, data, headers: headers);
 
     logger.info('AckableStringStream Shout $subject: '
         '\nheaders: $headers\nData: $data');

@@ -16,7 +16,7 @@ abstract class AckableBaseSocket extends Ackable
   @override
   void shout(String subject, Object/*?*/ data,
       {Map<String, Object>/*?*/ headers}) {
-    var outs = mount(subject, data, headers: headers);
+    final outs = mount(subject, data, headers: headers);
 
     logger.info('Shout $subject: '
         '\nheaders: $headers\nData: $data');
@@ -41,7 +41,7 @@ abstract class AckableBaseSocket extends Ackable
   @override
   Stream<Map<String, Object>> get onRawMessage => onStringMessage.map(
           (ev) {
-        var ret = parse(ev);
+            final ret = parse(ev);
 
         logger.info('AckableBaseSocket ${ret['cmd']}');
         return ret;

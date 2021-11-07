@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ackable/src/delegate.dart';
 import 'package:dispose/dispose.dart';
 import 'package:quiver/collection.dart';
 
@@ -24,7 +23,7 @@ abstract class AckableBroadcaster
 
   @override
   Future<void> dispose() async {
-    for (var cli in this) {
+    for (final cli in this) {
       await cli.dispose();
     }
 
@@ -65,7 +64,7 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
 
   void shout(String subject, Object /*?*/ data,
       {Map<String, Object> /*?*/ headers}) {
-    for (var cli in _clients) {
+    for (final cli in _clients) {
       cli.shout(subject, data, headers: headers);
     }
   }
@@ -74,7 +73,7 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
       Object /*?*/ data, {
         FutureOr Function(AckableClient, AckedMessage) onAck,
         Map<String, Object> /*?*/ headers }) {
-    var ret = _clients.map((cli) => cli.talk(subject, data, (ack) {
+    final ret = _clients.map((cli) => cli.talk(subject, data, (ack) {
       if (onAck != null) {
         return onAck(cli, ack);
       }

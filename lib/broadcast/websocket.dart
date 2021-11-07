@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:pedantic/pedantic.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_web_socket/shelf_web_socket.dart';
@@ -67,10 +68,12 @@ abstract class BaseWebSocketAckableServer
 
   /// Starts the websocket server.
   Future<HttpServer> start() {
-    var _handler = webSocketHandler((dynamic webSocket) async {
+    final _handler = webSocketHandler((dynamic webSocket) async {
       assert(webSocket is WebSocketChannel);
-      var cli = await makeClient(webSocket as WebSocketChannel);
+      final wch = webSocket as WebSocketChannel;
+      final cli = await makeClient(wch);
 
+      unawaited(wch.sink.done.then((dynamic e) => remove(cli)));
       add(cli);
       _ctrlClient.add(cli);
     });

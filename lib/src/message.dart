@@ -7,7 +7,7 @@ class Message {
   final Map<String, Object>/*?*/ headers;
 
   Map<String, Object> asMap() {
-    var d = data;
+    final d = data;
 
     if (d == null) {
       return null;

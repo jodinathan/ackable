@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:dispose/dispose.dart';
-
 import '../ackable.dart';
 import 'interface.dart';
 
