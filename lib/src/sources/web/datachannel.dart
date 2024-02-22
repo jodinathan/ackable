@@ -19,7 +19,7 @@ class AckableRtcDataChannel extends AckableBaseSocket
   Stream<Object> get onOpen => channel.onOpen;
 
   @override
-  bool get open => channel.readyState == 'open';
+  bool get isOpen => channel.readyState == 'open';
 
   @override
   Stream<String?> get onStringMessage => channel.onMessage.map(

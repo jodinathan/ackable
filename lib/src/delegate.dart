@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../ackable.dart';
-import 'interface.dart';
 
 abstract class DelegatingAckable
     implements Ackable {

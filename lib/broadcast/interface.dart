@@ -32,7 +32,7 @@ abstract class AckableBroadcaster
 }
 
 class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
-  final AckableBroadcaster? broadcaster;
+  final AckableBroadcaster? caster;
   final Set<T> _clients = <T>{};
   final Map<String, AckableRoom> rooms = {};
   Set<T> get clients => _clients;
@@ -44,15 +44,11 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
   Set<T> get delegate => _clients;
 
   FutureOr<AckableRoom> makeRoom(String name) =>
-      AckableRoom(broadcaster, name);
+      AckableRoom(caster, name);
 
   Future<AckableRoom?> room(String name) async {
     if (!rooms.containsKey(name)) {
       final room = await makeRoom(name);
-
-      if (room == null) {
-        return null;
-      }
 
       await _initRoom(room);
 
@@ -71,9 +67,9 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
 
   Future<void> talk(String subject,
       Object? data, {
-        FutureOr Function(AckableClient, AckedMessage)? onAck,
+        Future Function(AckableClient, AckedMessage)? onAck,
         Map<String, Object>? headers }) {
-    final ret = _clients.map((cli) => cli.talk(subject, data, (ack) {
+    final ret = _clients.map((cli) => cli.talk(subject, data, (ack) async {
       if (onAck != null) {
         return onAck(cli, ack);
       }
@@ -82,17 +78,17 @@ class AckableRoom<T extends AckableClient> extends DelegatingSet<T> {
     return Future.wait(ret);
   }
 
-  AckableRoom(this.broadcaster, this._name) {
+  AckableRoom(this.caster, this._name) {
     print('AckableRoom $_name');
   }
 }
 
-abstract class AckableClient implements Ackable {
-  AckableBroadcaster get broadcaster;
+mixin AckableClient implements Ackable {
+  AckableBroadcaster get caster;
 
-  Future<void> join(String room) => broadcaster.room(room).then(
+  Future<void> join(String room) => caster.room(room).then(
           (r) => r!.add(this));
 
-  Future<void> leave(String room) => broadcaster.room(room).then(
+  Future<void> leave(String room) => caster.room(room).then(
           (r) => r!.remove(this));
 }

@@ -7,15 +7,13 @@ import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../ackable.dart';
-import '../src/sources/websocketchannel.dart';
-import 'interface.dart';
 
 class WebSocketAckableClient extends AckableWebSocketChannel
     with AckableClient {
   @override
-  final BaseWebSocketAckableServer broadcaster;
+  final BaseWebSocketAckableServer caster;
 
-  WebSocketAckableClient(this.broadcaster,
+  WebSocketAckableClient(this.caster,
       WebSocketChannel wsc) : super(wsc);
 }
 
@@ -67,7 +65,7 @@ abstract class BaseWebSocketAckableServer
 
   /// Starts the websocket server.
   Future<HttpServer> start() {
-    final _handler = webSocketHandler((dynamic webSocket) async {
+    final handler = webSocketHandler((dynamic webSocket) async {
       assert(webSocket is WebSocketChannel);
       final wch = webSocket as WebSocketChannel;
       final cli = await makeClient(wch);
@@ -82,8 +80,8 @@ abstract class BaseWebSocketAckableServer
         return shelf.Response(await checkHeart() ? 200 : 500);
       }
 
-      return _handler(sock);
-    }, _host, port!).then((server) {
+      return handler(sock);
+    }, _host ?? '127.0.0.1', port!).then((server) {
       logger.info('Serving at ws://${server.address.host}:${server.port}');
 
       return _server = server;

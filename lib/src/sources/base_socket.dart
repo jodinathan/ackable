@@ -4,62 +4,61 @@ import '../interface.dart';
 abstract class AckableBaseSocket extends Ackable
     with IncomingString, OutgoingString {
   bool closeOnDispose = true;
-  Completer<bool> ready = Completer<bool>();
+  Completer<bool> _gettingReady = Completer<bool>();
 
-  bool get open;
+  bool get isOpen;
+  bool get isReady => _gettingReady.isCompleted;
   void sendString(String? buf);
   void close();
-  Stream<Object> get onClose;
-  Stream<Object> get onOpen;
+  Stream get onClose;
+  Stream get onOpen;
   Stream<String?> get onStringMessage;
 
   @override
-  void shout(String subject, Object? data,
-      {Map<String, Object>? headers}) {
+  void shout(String subject, Object? data, {Map<String, Object>? headers}) {
     final outs = mount(subject, data, headers: headers);
 
     logger.info('Shout $subject: '
         '\nheaders: $headers\nData: $data');
 
-    ready.future.then((value) => sendString(outs));
+    _gettingReady.future.then((value) => sendString(outs));
   }
 
   @override
   Future<void> dispose() {
-    if (closeOnDispose && open) {
+    if (closeOnDispose && isOpen) {
       close();
     }
     return super.dispose();
   }
 
   void _open() {
-    assert(!ready.isCompleted);
+    assert(!isReady);
 
-    ready.complete(true);
+    _gettingReady.complete(true);
   }
 
   @override
-  Stream<Map<String, Object?>> get onRawMessage => onStringMessage.map(
-          (ev) {
-            final ret = parse(ev);
+  Stream<Map<String, Object?>> get onRawMessage => onStringMessage.map((ev) {
+        final ret = parse(ev);
 
         logger.info('AckableBaseSocket ${ret['cmd']}');
         return ret;
       });
 
-  AckableBaseSocket(){
-    each<Object>(onClose, (ev) {
-      if (!ready.isCompleted) {
-        ready.completeError(ev);
+  AckableBaseSocket() {
+    each(onClose, (ev) {
+      if (!isReady) {
+        _gettingReady.completeError(ev);
       }
 
-      ready = Completer<bool>();
+      _gettingReady = Completer<bool>();
     });
 
-    if (open) {
+    if (isOpen) {
       _open();
     } else {
-      onOpen.first.then((Object ev) => _open());
+      onOpen.first.then((ev) => _open());
     }
   }
 }

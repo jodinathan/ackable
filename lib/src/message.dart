@@ -1,5 +1,3 @@
-
-
 import 'package:ackable/json.dart';
 
 class Message {

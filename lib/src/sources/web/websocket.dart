@@ -24,7 +24,7 @@ class AckableWebSocket extends AckableBaseSocket
           (ev) => ev.data as String?);
 
   @override
-  bool get open => webSocket.readyState == html.WebSocket.OPEN;
+  bool get isOpen => webSocket.readyState == html.WebSocket.OPEN;
 
   AckableWebSocket(this.webSocket);
 }
