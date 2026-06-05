@@ -1,7 +1,7 @@
 import 'dart:html';
+import 'package:web/web.dart' as web;
 
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:typings/d/ws.dart' as ws;
 import 'web/ws.dart';
 
 import 'web/datachannel.dart';
@@ -16,7 +16,7 @@ Ackable from(Object source) {
     return AckableWebSocket(source);
   } else if (source is WebSocketChannel) {
     return AckableWebSocketChannel(source);
-  } else if (source is ws.WebSocket) {
+  } else if (source is web.WebSocket) {
     return AckableWsWebSocket(source);
   }
 

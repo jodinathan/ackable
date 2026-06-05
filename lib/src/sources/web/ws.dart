@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:typings/d/ws.dart' as ws;
+import 'package:web/web.dart' as web;
 import '../../interface.dart';
 import '../base_socket.dart';
 
@@ -10,21 +10,21 @@ class AckableWsWebSocket extends AckableBaseSocket
 
   factory AckableWsWebSocket.connect(
       {String host = '127.0.0.1', int port = 4040}) {
-    final socket = ws.WebSocket('ws://$host:$port');
+    final socket = web.WebSocket('ws://$host:$port');
     final ret = AckableWsWebSocket(socket);
 
     return ret;
   }
 
-  final ws.WebSocket webSocket;
+  final web.WebSocket webSocket;
 
   @override
-  void sendString(String? buf) => webSocket.send(buf!);
+  void sendString(String? buf) => webSocket.send(buf as dynamic);
 
   @override
-  void close() => webSocket.destroy();
+  void close() => webSocket.close();
 
-  Stream<T> _makeStream<T>(String event, StreamController<T>? Function() getter,
+  Stream<T> _makeStream<T>(Stream event, StreamController<T>? Function() getter,
       void Function(StreamController<T>? value) setter,
       {void Function(StreamController<T> ctrl, dynamic a, dynamic b)? onData}) {
     final current = getter();
@@ -45,7 +45,7 @@ class AckableWsWebSocket extends AckableBaseSocket
 
       setter(value);
 
-      webSocket.on(event, ([a, b]) {
+      each(event, ([a, b]) {
         fnCall(value, a, b);
       });
     }
@@ -56,22 +56,23 @@ class AckableWsWebSocket extends AckableBaseSocket
   StreamController? _onClose;
   @override
   Stream get onClose {
-    return _makeStream('close', () => _onClose, (value) => _onClose = value);
+    return _makeStream(
+        webSocket.onClose, () => _onClose, (value) => _onClose = value);
   }
 
   StreamController? _onOpen;
   @override
   Stream get onOpen =>
-      _makeStream('open', () => _onOpen, (value) => _onOpen = value);
+      _makeStream(webSocket.onOpen, () => _onOpen, (value) => _onOpen = value);
 
   StreamController<String?>? _onMsg;
   @override
   Stream<String?> get onStringMessage =>
-      _makeStream('message', () => _onMsg, (value) => _onMsg = value,
+      _makeStream(webSocket.onMessage, () => _onMsg, (value) => _onMsg = value,
           onData: (ctrl, data, _) {
         ctrl.add(utf8.decode(data));
       });
 
   @override
-  bool get isOpen => webSocket.readyState == ws.WebSocketReadyState.open;
+  bool get isOpen => webSocket.readyState == web.WebSocket.OPEN;
 }
